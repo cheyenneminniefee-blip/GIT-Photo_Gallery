@@ -4,47 +4,102 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photo Gallery</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📷</text></svg>">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>F4F7</text></svg>">
     <link rel="stylesheet" href="styles.css">
     <script src="script.js" defer></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        .card .title {
+            padding: 15px 15px 5px;
+            text-align: center;
+            font-size: 1.2rem;
+            color: #333;
+        }
+        .card .description {
+            padding: 0 15px 15px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="gallery">
         <div class="card">
-            <img src="https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg" alt="Hollow Knight">
+            <img src="https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg" alt="Hollow Knight 2026 Cover Art">
+            <div class="title">Hollow Knight: Silksong</div>
+            <div class="description">The upcoming sequel to Hollow Knight, featuring Hornet as the protagonist.</div>
+        </div>
+        <div class="card">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5k6jZ7LfrKBMa8Wobt_KSN97QQth7eCnk1g3c9moEaDM4kM06_4CaKGh2&s=10" alt="Hollow Knight Character Art">
             <div class="title">Hollow Knight</div>
+            <div class="description">The main protagonist from the critically acclaimed Metroidvania game.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5k6jZ7LfrKBMa8Wobt_KSN97QQth7eCnk1g3c9moEaDM4kM06_4CaKGh2&s=10" alt="Image 2">
-            <div class="title">Image 2</div>
-        </div>
-        <div class="card">
-            <img src="https://assets1.ignimgs.com/2018/06/21/hollowknight-1280-1529623462572_160w.jpg?width=1280&format=jpg&auto=webp&quality=80" alt="Hollow Knight Gameplay">
+            <img src="https://assets1.ignimgs.com/2018/06/21/hollowknight-1280-1529623462572_160w.jpg?width=1280&format=jpg&auto=webp&quality=80" alt="Hollow Knight Gameplay Screenshot">
             <div class="title">Hollow Knight Gameplay</div>
+            <div class="description">Exploring the vast underground kingdom of Hallownest.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyvbQgfn_JAg2lNjIOZC5AXtLekQw-t0riyM6_G11Uug&s" alt="Dead Cells">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyvbQgfn_JAg2lNjIOZC5AXtLekQw-t0riyM6_G11Uug&s" alt="Dead Cells Cover Art">
             <div class="title">Dead Cells</div>
+            <div class="description">A roguelike Metroidvania with fast-paced combat and permadeath.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUBUwHEmiqTZyNywOFr6pdmHhE-pg2lnSVNgjjHzEFZg&s=10" alt="Image 5">
-            <div class="title">Image 5</div>
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUBUwHEmiqTZyNywOFr6pdmHhE-pg2lnSVNgjjHzEFZg&s=10" alt="Blasphemous Game">
+            <div class="title">Blasphemous</div>
+            <div class="description">A dark Metroidvania set in a twisted, gothic world inspired by Catholic iconography.</div>
         </div>
         <div class="card">
-            <img src="https://i.guim.co.uk/img/media/b5285e0659348c1c79ede25248cb945fba8112b5/52_153_1545_927/master/1545.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=a89a428b0618a580071544abf0edb239" alt="Image 6">
-            <div class="title">Image 6</div>
+            <img src="https://i.guim.co.uk/img/media/b5285e0659348c1c79ede25248cb945fba8112b5/52_153_1545_927/master/1545.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=a89a428b0618a580071544abf0edb239" alt="Ori and the Will of the Wisps">
+            <div class="title">Ori and the Will of the Wisps</div>
+            <div class="description">A beautiful Metroidvania with stunning visuals and emotional storytelling.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcJIYXvTW-lXGADxJTWWjzDIlXNWrZnqjVMh7hWN1nJg&s" alt="Image 7">
-            <div class="title">Image 7</div>
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcJIYXvTW-lXGADxJTWWjzDIlXNWrZnqjVMh7hWN1nJg&s" alt="Celeste Game">
+            <div class="title">Celeste</div>
+            <div class="description">A challenging platformer about climbing a mountain and overcoming personal struggles.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzNt_6yQ4tbY7Em1vJI6mIm3F7oVMO4X7nbkGKxG0QF4c4bSIHSpSZ0M&s=10" alt="Image 8">
-            <div class="title">Image 8</div>
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzNt_6yQ4tbY7Em1vJI6mIm3F7oVMO4X7nbkGKxG0QF4c4bSIHSpSZ0M&s=10" alt="Axiom Verge">
+            <div class="title">Axiom Verge</div>
+            <div class="description">A sci-fi Metroidvania with glitch mechanics and retro-inspired visuals.</div>
         </div>
         <div class="card">
-            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlM_u3yMflhnfq-vPmbqNSCV2mGnMlqEvkKWHZAo6Kci0zTwMpJkJPDMgy&s=10" alt="Image 9">
-            <div class="title">Image 9</div>
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlM_u3yMflhnfq-vPmbqNSCV2mGnMlqEvkKWHZAo6Kci0zTwMpJkJPDMgy&s=10" alt="Ender Lilies">
+            <div class="title">Ender Lilies</div>
+            <div class="description">A dark fantasy Metroidvania with spirit summoning combat mechanics.</div>
         </div>
     </div>
 </body>
