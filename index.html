@@ -4,83 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Photo Gallery</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .card {
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-5px);
-        }
-        .card img {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-        }
-        .card .title {
-            padding: 15px;
-            text-align: center;
-            font-size: 1.2rem;
-            color: #333;
-        }
-    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📷</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
 </head>
 <body>
     <div class="gallery">
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+1" alt="Placeholder Image 1">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 1">
             <div class="title">Card 1</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+2" alt="Placeholder Image 2">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 2">
             <div class="title">Card 2</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+3" alt="Placeholder Image 3">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 3">
             <div class="title">Card 3</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+4" alt="Placeholder Image 4">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 4">
             <div class="title">Card 4</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+5" alt="Placeholder Image 5">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 5">
             <div class="title">Card 5</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+6" alt="Placeholder Image 6">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 6">
             <div class="title">Card 6</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+7" alt="Placeholder Image 7">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 7">
             <div class="title">Card 7</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+8" alt="Placeholder Image 8">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 8">
             <div class="title">Card 8</div>
         </div>
         <div class="card">
-            <img src="https://via.placeholder.com/400x200?text=Image+9" alt="Placeholder Image 9">
+            <img src="gallery-placeholder.svg" alt="Placeholder Image 9">
             <div class="title">Card 9</div>
         </div>
     </div>
