@@ -151,7 +151,7 @@
             }
 
             generateBtn.addEventListener('click', async function() {
-                const apiKey = process.env.GROQ_API_KEY;
+                const apiKey = (typeof process !== 'undefined' && process.env && process.env.GROQ_API_KEY) || '';
                 if (!apiKey) {
                     showError('GROQ_API_KEY not found in Replit Secrets. Please add it to your Replit project Secrets.');
                     return;
