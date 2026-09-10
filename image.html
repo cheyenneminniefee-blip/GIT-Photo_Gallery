@@ -115,6 +115,12 @@
             margin-top: 10px;
             text-align: center;
         }
+        .api-info {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -127,10 +133,11 @@
     <div class="ai-section">
         <div class="section-title">AI Description</div>
         <div class="input-section">
-            <input type="password" id="api-key-input" class="api-input" placeholder="Enter Groq API key">
+            <input type="password" id="api-key-input" class="api-input" placeholder="Enter Groq API key (or use .env file)">
             <button id="generate-btn" class="generate-btn">Generate AI Description</button>
             <div id="loading" class="loading" style="display: none;">Generating...</div>
             <div id="error" class="error" style="display: none;"></div>
+            <div class="api-info">You can also set GROQ_API_KEY in your Replit .env file</div>
         </div>
         <div id="ai-description" class="ai-description"></div>
     </div>
@@ -160,7 +167,7 @@
             generateBtn.addEventListener('click', async function() {
                 const apiKey = apiKeyInput.value.trim();
                 if (!apiKey) {
-                    showError('Please enter a Groq API key');
+                    showError('Please enter a Groq API key in the input or .env file');
                     return;
                 }
 
