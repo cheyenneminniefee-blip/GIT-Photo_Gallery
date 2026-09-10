@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', function() {
     gallery.addEventListener('click', function(e) {
         const img = e.target.closest('img');
         if (img) {
+            e.preventDefault();
+            e.stopPropagation();
             const imageName = img.getAttribute('data-image');
             if (imageName) {
                 window.location.href = 'image.html?name=' + encodeURIComponent(imageName);

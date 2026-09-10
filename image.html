@@ -75,6 +75,10 @@
         .generate-btn:hover {
             background-color: #218838;
         }
+        .generate-btn:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
         .loading {
             color: #6c757d;
             font-style: italic;
@@ -105,6 +109,12 @@
             max-width: 400px;
             margin-bottom: 10px;
         }
+        .error {
+            color: #dc3545;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -117,9 +127,10 @@
     <div class="ai-section">
         <div class="section-title">AI Description</div>
         <div class="input-section">
-            <input type="text" id="api-key-input" class="api-input" placeholder="Enter Groq API key">
+            <input type="password" id="api-key-input" class="api-input" placeholder="Enter Groq API key">
             <button id="generate-btn" class="generate-btn">Generate AI Description</button>
             <div id="loading" class="loading" style="display: none;">Generating...</div>
+            <div id="error" class="error" style="display: none;"></div>
         </div>
         <div id="ai-description" class="ai-description"></div>
     </div>
@@ -137,6 +148,7 @@
             const apiKeyInput = document.getElementById('api-key-input');
             const generateBtn = document.getElementById('generate-btn');
             const loadingElement = document.getElementById('loading');
+            const errorElement = document.getElementById('error');
 
             if (imageName) {
                 imageElement.src = 'images/' + encodeURIComponent(imageName);
@@ -148,21 +160,27 @@
             generateBtn.addEventListener('click', async function() {
                 const apiKey = apiKeyInput.value.trim();
                 if (!apiKey) {
-                    alert('Please enter a Groq API key');
+                    showError('Please enter a Groq API key');
                     return;
                 }
 
                 loadingElement.style.display = 'block';
                 aiDescriptionElement.textContent = '';
+                errorElement.style.display = 'none';
                 generateBtn.disabled = true;
 
                 try {
-                    const description = await generateAIDescription(apiKey, imageName);
-                    aiDescriptionElement.textContent = description;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 30000);
                     
+                    const description = await generateAIDescription(apiKey, imageName, controller);
+                    clearTimeout(timeoutId);
+                    
+                    aiDescriptionElement.textContent = description;
                     localStorage.setItem('groqApiKey', apiKey);
                 } catch (error) {
-                    aiDescriptionElement.textContent = 'Error: ' + error.message;
+                    clearTimeout(timeoutId);
+                    showError(error.message);
                 } finally {
                     loadingElement.style.display = 'none';
                     generateBtn.disabled = false;
@@ -174,7 +192,13 @@
                 apiKeyInput.value = savedKey;
             }
 
+            function showError(message) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+            }
+
             function getStaticDescription(filename) {
+                if (!filename) return '';
                 const descriptions = {
                     'portrait.jpg': 'A black and white portrait photograph of a person.',
                     'nature_leaf.jpg': 'A close-up of a green plant leaf with water droplets.',
@@ -189,7 +213,11 @@
                 return descriptions[filename] || '';
             }
 
-            async function generateAIDescription(apiKey, imageName) {
+            async function generateAIDescription(apiKey, imageName, controller) {
+                if (!imageName) {
+                    throw new Error('No image selected');
+                }
+
                 const imageTitle = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
                 const prompt = `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`;
 
@@ -209,14 +237,20 @@
                         ],
                         temperature: 0.7,
                         max_tokens: 150
-                    })
+                    }),
+                    signal: controller.signal
                 });
 
                 if (!response.ok) {
-                    throw new Error('API request failed: ' + response.statusText);
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMsg = errorData.error?.message || response.statusText;
+                    throw new Error('API request failed: ' + errorMsg);
                 }
 
                 const data = await response.json();
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('Invalid API response format');
+                }
                 return data.choices[0].message.content;
             }
         });
