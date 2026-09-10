@@ -97,18 +97,6 @@
         .back-link:hover {
             background-color: #0056b3;
         }
-        .input-section {
-            margin-top: 15px;
-            text-align: center;
-        }
-        .api-input {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            width: 100%;
-            max-width: 400px;
-            margin-bottom: 10px;
-        }
         .error {
             color: #dc3545;
             font-size: 0.9rem;
@@ -133,11 +121,10 @@
     <div class="ai-section">
         <div class="section-title">AI Description</div>
         <div class="input-section">
-            <input type="password" id="api-key-input" class="api-input" placeholder="Enter Groq API key (or use .env file)">
             <button id="generate-btn" class="generate-btn">Generate AI Description</button>
             <div id="loading" class="loading" style="display: none;">Generating...</div>
             <div id="error" class="error" style="display: none;"></div>
-            <div class="api-info">You can also set GROQ_API_KEY in your Replit .env file</div>
+            <div class="api-info">Uses GROQ_API_KEY from Replit Secrets</div>
         </div>
         <div id="ai-description" class="ai-description"></div>
     </div>
@@ -152,7 +139,6 @@
             const titleElement = document.getElementById('image-title');
             const descriptionElement = document.getElementById('image-description');
             const aiDescriptionElement = document.getElementById('ai-description');
-            const apiKeyInput = document.getElementById('api-key-input');
             const generateBtn = document.getElementById('generate-btn');
             const loadingElement = document.getElementById('loading');
             const errorElement = document.getElementById('error');
@@ -165,9 +151,9 @@
             }
 
             generateBtn.addEventListener('click', async function() {
-                const apiKey = apiKeyInput.value.trim();
+                const apiKey = process.env.GROQ_API_KEY;
                 if (!apiKey) {
-                    showError('Please enter a Groq API key in the input or .env file');
+                    showError('GROQ_API_KEY not found in Replit Secrets. Please add it to your Replit project Secrets.');
                     return;
                 }
 
@@ -184,7 +170,6 @@
                     clearTimeout(timeoutId);
                     
                     aiDescriptionElement.textContent = description;
-                    localStorage.setItem('groqApiKey', apiKey);
                 } catch (error) {
                     clearTimeout(timeoutId);
                     showError(error.message);
@@ -193,11 +178,6 @@
                     generateBtn.disabled = false;
                 }
             });
-
-            const savedKey = localStorage.getItem('groqApiKey');
-            if (savedKey) {
-                apiKeyInput.value = savedKey;
-            }
 
             function showError(message) {
                 errorElement.textContent = message;
