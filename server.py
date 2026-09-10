@@ -1,25 +1,33 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os
 import requests
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='.')
 
 # Serve static files
 @app.route('/')
+def serve_index():
+    return send_from_directory('.', 'index.html')
+
 @app.route('/<path:path>')
-def serve_static(path='index.html'):
-    if path == '' or path.endswith('/'):
-        path = 'index.html'
+def serve_static(path):
     try:
-        return app.send_static_file(path)
+        return send_from_directory('.', path)
     except:
         return "File not found", 404
 
 # Endpoint for generating AI descriptions
-@app.route('/api/generate-description', methods=['POST'])
+@app.route('/api/generate-description', methods=['POST', 'OPTIONS'])
 def generate_description():
+    if request.method == 'OPTIONS':
+        response = jsonify({})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        return response, 200
+    
     data = request.get_json()
-    image_name = data.get('imageName', '')
+    image_name = data.get('imageName', '') if data else ''
     
     if not image_name:
         return jsonify({'error': 'No image name provided'}), 400

@@ -162,9 +162,6 @@
                 generateBtn.disabled = true;
 
                 try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 30000);
-                    
                     const response = await fetch('/api/generate-description', {
                         method: 'POST',
                         headers: {
@@ -172,11 +169,8 @@
                         },
                         body: JSON.stringify({
                             imageName: imageName
-                        }),
-                        signal: controller.signal
+                        })
                     });
-                    
-                    clearTimeout(timeoutId);
                     
                     if (!response.ok) {
                         const errorData = await response.json();
@@ -187,7 +181,6 @@
                     aiDescriptionElement.textContent = data.description;
                     
                 } catch (error) {
-                    clearTimeout(timeoutId);
                     showError(error.message);
                 } finally {
                     loadingElement.style.display = 'none';
