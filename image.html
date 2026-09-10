@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .image-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 90%;
+            text-align: center;
+        }
+        .image-container img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        .image-container .title {
+            padding: 15px;
+            text-align: center;
+            font-size: 1.5rem;
+            color: #333;
+        }
+        .back-link {
+            margin-top: 20px;
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+        }
+        .back-link:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="image-container">
+        <div class="title" id="image-title">Image</div>
+        <img id="display-image" src="" alt="">
+    </div>
+    <a href="index.html" class="back-link">Back to Gallery</a>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const imageName = urlParams.get('name');
+            if (imageName) {
+                const imageElement = document.getElementById('display-image');
+                const titleElement = document.getElementById('image-title');
+                
+                imageElement.src = 'images/' + encodeURIComponent(imageName);
+                imageElement.alt = imageName;
+                
+                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
+            }
+        });
+    </script>
+</body>
+</html>
