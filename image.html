@@ -153,7 +153,7 @@
             if (imageName) {
                 imageElement.src = 'images/' + encodeURIComponent(imageName);
                 imageElement.alt = imageName;
-                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
+                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.(jpg|svg)$/i, '');
                 descriptionElement.textContent = getStaticDescription(imageName);
             }
 
@@ -199,18 +199,19 @@
 
             function getStaticDescription(filename) {
                 if (!filename) return '';
+                const baseName = filename.replace(/\.(jpg|svg)$/i, '');
                 const descriptions = {
-                    'portrait.jpg': 'A black and white portrait photograph of a person.',
-                    'nature_leaf.jpg': 'A close-up of a green plant leaf with water droplets.',
-                    'hot_air_balloons.jpg': 'Colorful hot air balloons floating in the sky.',
-                    'coastal_rocks.jpg': 'Dramatic rocky coastline with ocean waves crashing.',
-                    'tropical_beach.jpg': 'A serene tropical beach with palm trees and turquoise water.',
-                    'mountain_view.jpg': 'Breathtaking mountain landscape with snow-capped peaks.',
-                    'city_skyline.jpg': 'Modern city skyline at dusk with illuminated buildings.',
-                    'forest_path.jpg': 'A peaceful path through a dense green forest.',
-                    'desert_landscape.jpg': 'Vast desert with sand dunes under a clear blue sky.'
+                    'portrait': 'A black and white portrait photograph of a person.',
+                    'nature_leaf': 'A close-up of a green plant leaf with water droplets.',
+                    'hot_air_balloons': 'Colorful hot air balloons floating in the sky.',
+                    'coastal_rocks': 'Dramatic rocky coastline with ocean waves crashing.',
+                    'tropical_beach': 'A serene tropical beach with palm trees and turquoise water.',
+                    'mountain_view': 'Breathtaking mountain landscape with snow-capped peaks.',
+                    'city_skyline': 'Modern city skyline at dusk with illuminated buildings.',
+                    'forest_path': 'A peaceful path through a dense green forest.',
+                    'desert_landscape': 'Vast desert with sand dunes under a clear blue sky.'
                 };
-                return descriptions[filename] || '';
+                return descriptions[baseName] || '';
             }
 
             async function generateAIDescription(apiKey, imageName, controller) {
@@ -218,7 +219,8 @@
                     throw new Error('No image selected');
                 }
 
-                const imageTitle = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
+                const baseName = imageName.replace(/\.(jpg|svg)$/i, '');
+                const imageTitle = baseName.replace(/_/g, ' ');
                 const prompt = `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`;
 
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
