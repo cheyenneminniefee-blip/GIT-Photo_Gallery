@@ -6,7 +6,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (img) {
             const imageName = img.getAttribute('data-image');
             if (imageName) {
-                const imageId = imageName.replace(/\D/g, '');
                 window.location.href = 'image.html?name=' + encodeURIComponent(imageName);
             }
         }

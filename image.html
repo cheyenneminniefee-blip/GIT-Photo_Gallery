@@ -66,7 +66,7 @@
                 const imageElement = document.getElementById('display-image');
                 const titleElement = document.getElementById('image-title');
                 
-                imageElement.src = 'https://picsum.photos/id/' + imageName.replace(/\D/g, '') + '/800/600';
+                imageElement.src = 'images/' + encodeURIComponent(imageName);
                 imageElement.alt = imageName;
                 
                 titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
