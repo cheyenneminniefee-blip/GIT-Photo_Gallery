@@ -158,9 +158,9 @@
             const errorElement = document.getElementById('error');
 
             if (imageName) {
-                imageElement.src = 'images/' + encodeURIComponent(imageName);
+                imageElement.src = getImageUrl(imageName);
                 imageElement.alt = imageName;
-                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.(jpg|svg)$/i, '');
+                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
                 descriptionElement.textContent = getStaticDescription(imageName);
             }
 
@@ -204,19 +204,34 @@
                 errorElement.style.display = 'block';
             }
 
+            function getImageUrl(filename) {
+                const imageMap = {
+                    'hollow_knight_silksong.jpg': 'https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg',
+                    'hollow_knight_character.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5k6jZ7LfrKBMa8Wobt_KSN97QQth7eCnk1g3c9moEaDM4kM06_4CaKGh2&s=10',
+                    'hollow_knight_gameplay.jpg': 'https://assets1.ignimgs.com/2018/06/21/hollowknight-1280-1529623462572_160w.jpg?width=1280&format=jpg&auto=webp&quality=80',
+                    'dead_cells_cover.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyvbQgfn_JAg2lNjIOZC5AXtLekQw-t0riyM6_G11Uug&s',
+                    'dead_cells_green.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUBUwHEmiqTZyNywOFr6pdmHhE-pg2lnSVNgjjHzEFZg&s=10',
+                    'dead_cells_boss.jpg': 'https://i.guim.co.uk/img/media/b5285e0659348c1c79ede25248cb945fba8112b5/52_153_1545_927/master/1545.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=a89a428b0618a580071544abf0edb239',
+                    'noita_screenshot.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcJIYXvTW-lXGADxJTWWjzDIlXNWrZnqjVMh7hWN1nJg&s',
+                    'noita_magic.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzNt_6yQ4tbY7Em1vJI6mIm3F7oVMO4X7nbkGKxG0QF4c4bSIHSpSZ0M&s=10',
+                    'noita_world.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlM_u3yMflhnfq-vPmbqNSCV2mGnMlqEvkKWHZAo6Kci0zTwMpJkJPDMgy&s=10'
+                };
+                return imageMap[filename] || '';
+            }
+
             function getStaticDescription(filename) {
                 if (!filename) return '';
-                const baseName = filename.replace(/\.(jpg|svg)$/i, '');
+                const baseName = filename.replace(/\.jpg$/i, '');
                 const descriptions = {
-                    'portrait': 'A black and white portrait photograph of a person.',
-                    'nature_leaf': 'A close-up of a green plant leaf with water droplets.',
-                    'hot_air_balloons': 'Colorful hot air balloons floating in the sky.',
-                    'coastal_rocks': 'Dramatic rocky coastline with ocean waves crashing.',
-                    'tropical_beach': 'A serene tropical beach with palm trees and turquoise water.',
-                    'mountain_view': 'Breathtaking mountain landscape with snow-capped peaks.',
-                    'city_skyline': 'Modern city skyline at dusk with illuminated buildings.',
-                    'forest_path': 'A peaceful path through a dense green forest.',
-                    'desert_landscape': 'Vast desert with sand dunes under a clear blue sky.'
+                    'hollow_knight_silksong': 'The upcoming sequel featuring Hornet as the protagonist.',
+                    'hollow_knight_character': 'The silent protagonist exploring Hallownest.',
+                    'hollow_knight_gameplay': 'Battling through the depths of Hallownest.',
+                    'dead_cells_cover': 'A roguelike Metroidvania with fast-paced combat and permadeath.',
+                    'dead_cells_green': 'Exploring the toxic sewers biome.',
+                    'dead_cells_boss': 'Facing off against a powerful boss enemy.',
+                    'noita_screenshot': 'A physics-based roguelike where every pixel is simulated.',
+                    'noita_magic': 'Casting powerful spells in the pixel world.',
+                    'noita_world': 'Exploring the procedurally generated world.'
                 };
                 return descriptions[baseName] || '';
             }
@@ -226,7 +241,7 @@
                     throw new Error('No image selected');
                 }
 
-                const baseName = imageName.replace(/\.(jpg|svg)$/i, '');
+                const baseName = imageName.replace(/\.jpg$/i, '');
                 const imageTitle = baseName.replace(/_/g, ' ');
                 const prompt = `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`;
 
