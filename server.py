@@ -21,6 +21,7 @@ def generate_description():
     
     data = request.get_json()
     image_name = data.get('imageName', '') if data else ''
+    image_url = data.get('imageUrl', '') if data else ''
     
     if not image_name:
         return jsonify({'error': 'No image name provided'}), 400
@@ -33,7 +34,11 @@ def generate_description():
     base_name = image_name.replace('.jpg', '').replace('.jpeg', '').replace('.png', '')
     image_title = base_name.replace('_', ' ')
     
-    prompt = f'Describe the image titled "{image_title}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.'
+    # Build prompt with image URL for vision models
+    if image_url:
+        prompt = f'Describe this image in a creative and detailed way. The image is available at: {image_url}. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'
+    else:
+        prompt = f'Describe the image titled "{image_title}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.'
     
     try:
         response = requests.post(
