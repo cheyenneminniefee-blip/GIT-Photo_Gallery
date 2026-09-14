@@ -34,11 +34,32 @@ def generate_description():
     base_name = image_name.replace('.jpg', '').replace('.jpeg', '').replace('.png', '')
     image_title = base_name.replace('_', ' ')
     
-    # Build prompt with image URL for vision models
+    # Use vision model if image URL is provided
     if image_url:
-        prompt = f'Describe this image in a creative and detailed way. The image is available at: {image_url}. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'
+        # Use Groq's vision-capable model with multimodal input
+        vision_payload = {
+            'model': 'qwen/qwen3.6-27b',
+            'messages': [{
+                'role': 'user',
+                'content': [
+                    {'type': 'text', 'text': f'Describe this image in a creative and detailed way. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'},
+                    {'type': 'image_url', 'image_url': {'url': image_url}}
+                ]
+            }],
+            'temperature': 0.7,
+            'max_tokens': 150
+        }
     else:
-        prompt = f'Describe the image titled "{image_title}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.'
+        # Fallback to text-only model
+        vision_payload = {
+            'model': 'openai/gpt-oss-20b',
+            'messages': [{
+                'role': 'user',
+                'content': f'Describe the image titled "{image_title}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.'
+            }],
+            'temperature': 0.7,
+            'max_tokens': 150
+        }
     
     try:
         response = requests.post(
@@ -47,12 +68,7 @@ def generate_description():
                 'Authorization': f'Bearer {api_key}',
                 'Content-Type': 'application/json'
             },
-            json={
-                'model': 'openai/gpt-oss-20b',
-                'messages': [{'role': 'user', 'content': prompt}],
-                'temperature': 0.7,
-                'max_tokens': 150
-            },
+            json=vision_payload,
             timeout=30
         )
         
