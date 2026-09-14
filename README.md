@@ -24,7 +24,7 @@ The Groq API key **must** be set via Replit Secrets:
 
 **Security Architecture:**
 - The frontend (browser JavaScript) **cannot** access Replit Secrets directly
-- A Python Flask server (`server.py`) runs on port 5000
+- A Node.js server (`server.js`) runs on port 5000
 - The server has access to `process.env.GROQ_API_KEY` from Replit Secrets
 - When you click "Generate AI Description", the frontend sends a POST request to `/api/generate-description`
 - The server receives the request, uses the API key (which stays hidden on the server), calls Groq, and returns only the description text
@@ -32,7 +32,7 @@ The Groq API key **must** be set via Replit Secrets:
 
 ## Running the Project
 
-The project uses a Python Flask server to serve the static files and handle AI requests.
+The project uses a Node.js server to serve the static files and handle AI requests.
 
 - Click **Run** in Replit
 - The server starts on port 5000
@@ -46,7 +46,7 @@ The project uses a Python Flask server to serve the static files and handle AI r
 - `image.html` - Image detail page with AI description button
 - `script.js` - Gallery click handler
 - `styles.css` - Styling for the gallery
-- `server.py` - Flask backend that proxies Groq API requests
+- `server.js` - Node.js backend that proxies Groq API requests
 
 ## Groq API
 
