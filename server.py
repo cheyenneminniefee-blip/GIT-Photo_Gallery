@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 import os
 import requests
+import base64
 
 app = Flask(__name__, static_folder='.')
 
@@ -36,19 +37,55 @@ def generate_description():
     
     # Use vision model if image URL is provided
     if image_url:
-        # Use Groq's vision-capable model with multimodal input
-        vision_payload = {
-            'model': 'qwen/qwen3.6-27b',
-            'messages': [{
-                'role': 'user',
-                'content': [
-                    {'type': 'text', 'text': f'Describe this image in a creative and detailed way. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'},
-                    {'type': 'image_url', 'image_url': {'url': image_url}}
-                ]
-            }],
-            'temperature': 0.7,
-            'max_tokens': 150
-        }
+        # Try to fetch and encode the image as base64 to avoid 403 errors
+        try:
+            image_response = requests.get(image_url, timeout=10)
+            if image_response.status_code == 200:
+                # Encode image to base64
+                image_data = base64.b64encode(image_response.content).decode('utf-8')
+                image_mime = image_response.headers.get('Content-Type', 'image/jpeg')
+                
+                # Use Groq's vision-capable model with base64 encoded image
+                vision_payload = {
+                    'model': 'qwen/qwen3.6-27b',
+                    'messages': [{
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': f'Describe this image in a creative and detailed way. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'},
+                            {'type': 'image_url', 'image_url': {'url': f'data:{image_mime};base64,{image_data}'}}
+                        ]
+                    }],
+                    'temperature': 0.7,
+                    'max_tokens': 150
+                }
+            else:
+                # Fall back to URL-based if fetch fails
+                vision_payload = {
+                    'model': 'qwen/qwen3.6-27b',
+                    'messages': [{
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': f'Describe this image in a creative and detailed way. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'},
+                            {'type': 'image_url', 'image_url': {'url': image_url}}
+                        ]
+                    }],
+                    'temperature': 0.7,
+                    'max_tokens': 150
+                }
+        except:
+            # If image fetch fails, use URL directly
+            vision_payload = {
+                'model': 'qwen/qwen3.6-27b',
+                'messages': [{
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': f'Describe this image in a creative and detailed way. The image title is "{image_title}". Focus on what you can see in the image. Provide a 2-3 sentence description.'},
+                        {'type': 'image_url', 'image_url': {'url': image_url}}
+                    ]
+                }],
+                'temperature': 0.7,
+                'max_tokens': 150
+            }
     else:
         # Fallback to text-only model
         vision_payload = {
