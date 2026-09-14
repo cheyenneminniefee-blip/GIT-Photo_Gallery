@@ -24,7 +24,7 @@ function sendJson(response, statusCode, body) {
 
 function sendText(response, statusCode, body) {
   response.writeHead(statusCode, {
-    "Content-Type": "text/plain; charset=utf-8",
+    "Content-Type": "text/html; charset=utf-8",
     "Content-Length": Buffer.byteLength(body),
   });
   response.end(body);
@@ -37,6 +37,8 @@ function getImageTitle(imageName) {
 async function generateDescription(request, response) {
   if (request.method === "OPTIONS") {
     response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": 2,
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
@@ -119,7 +121,8 @@ async function generateDescription(request, response) {
 }
 
 function serveStatic(request, response, requestPath) {
-  const decodedPath = decodeURIComponent(requestPath === "/" ? "/index.html" : requestPath);
+  const requestedFile = requestPath === "/favicon.ico" ? "/favicon.svg" : requestPath;
+  const decodedPath = decodeURIComponent(requestedFile === "/" ? "/index.html" : requestedFile);
   const filePath = path.resolve(ROOT, `.${decodedPath}`);
 
   if (filePath !== ROOT && !filePath.startsWith(`${ROOT}${path.sep}`)) {

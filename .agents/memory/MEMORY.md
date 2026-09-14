@@ -1,0 +1,1 @@
+- [Workflow restarts](workflow-restarts.md) — after changing a Replit workflow command, restart the managed workflow before validating the new process.
