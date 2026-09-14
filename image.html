@@ -146,7 +146,8 @@
             if (imageName) {
                 imageElement.src = getImageUrl(imageName);
                 imageElement.alt = imageName;
-                titleElement.textContent = imageName.replace(/_/g, ' ').replace(/\.jpg$/i, '');
+                const baseName = imageName.replace(/\.(jpg|jpeg|png)$/i, '');
+                titleElement.textContent = baseName.replace(/_/g, ' ');
                 descriptionElement.textContent = getStaticDescription(imageName);
             }
 
@@ -173,12 +174,22 @@
                     });
                     
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'API request failed');
+                        let errorMsg = 'API request failed';
+                        try {
+                            const errorData = await response.json();
+                            errorMsg = errorData.error || errorMsg;
+                        } catch (e) {
+                            errorMsg = response.statusText || errorMsg;
+                        }
+                        throw new Error(errorMsg);
                     }
                     
                     const data = await response.json();
-                    aiDescriptionElement.textContent = data.description;
+                    if (data.description) {
+                        aiDescriptionElement.textContent = data.description;
+                    } else {
+                        throw new Error('No description returned');
+                    }
                     
                 } catch (error) {
                     showError(error.message);
@@ -210,7 +221,7 @@
 
             function getStaticDescription(filename) {
                 if (!filename) return '';
-                const baseName = filename.replace(/\.jpg$/i, '');
+                const baseName = filename.replace(/\.(jpg|jpeg|png)$/i, '');
                 const descriptions = {
                     'hollow_knight_silksong': 'The upcoming sequel featuring Hornet as the protagonist.',
                     'hollow_knight_character': 'The silent protagonist exploring Hallownest.',

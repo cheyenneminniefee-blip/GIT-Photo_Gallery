@@ -9,13 +9,6 @@ app = Flask(__name__, static_folder='.')
 def serve_index():
     return send_from_directory('.', 'index.html')
 
-@app.route('/<path:path>')
-def serve_static(path):
-    try:
-        return send_from_directory('.', path)
-    except:
-        return "File not found", 404
-
 # Endpoint for generating AI descriptions
 @app.route('/api/generate-description', methods=['POST', 'OPTIONS'])
 def generate_description():
@@ -37,7 +30,7 @@ def generate_description():
         return jsonify({'error': 'GROQ_API_KEY not configured in Replit Secrets'}), 400
     
     # Extract base name and create title
-    base_name = image_name.replace('.jpg', '')
+    base_name = image_name.replace('.jpg', '').replace('.jpeg', '').replace('.png', '')
     image_title = base_name.replace('_', ' ')
     
     prompt = f'Describe the image titled "{image_title}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.'
@@ -59,8 +52,11 @@ def generate_description():
         )
         
         if response.status_code != 200:
-            error_data = response.json()
-            error_msg = error_data.get('error', {}).get('message', response.text)
+            try:
+                error_data = response.json()
+                error_msg = error_data.get('error', {}).get('message', response.text)
+            except:
+                error_msg = response.text
             return jsonify({'error': f'API request failed: {error_msg}'}), 500
         
         result = response.json()
@@ -71,6 +67,14 @@ def generate_description():
         return jsonify({'error': 'Request timed out after 30 seconds'}), 504
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/<path:path>')
+def serve_static(path):
+    try:
+        return send_from_directory('.', path)
+    except:
+        return "File not found", 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
