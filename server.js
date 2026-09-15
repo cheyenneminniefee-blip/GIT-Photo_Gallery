@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const PORT = 5000;
 const ROOT = path.resolve(__dirname);
+const DESCRIPTIONS_FILE = path.resolve(ROOT, "descriptions.json");
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
@@ -37,6 +38,19 @@ function getImageTitle(imageName) {
     .replace(".jpeg", "")
     .replace(".png", "")
     .replaceAll("_", " ");
+}
+
+function readDescriptions() {
+  try {
+    const raw = fs.readFileSync(DESCRIPTIONS_FILE, "utf-8");
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function writeDescriptions(descriptions) {
+  fs.writeFileSync(DESCRIPTIONS_FILE, JSON.stringify(descriptions, null, 2), "utf-8");
 }
 
 async function fetchImageAsDataUrl(imageUrl) {
@@ -131,6 +145,19 @@ async function generateDescription(request, response) {
   }
 
   const imageTitle = getImageTitle(imageName);
+  const forceRegenerate = data?.forceRegenerate || false;
+
+  const descriptions = readDescriptions();
+  if (!forceRegenerate && descriptions[imageName]) {
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    response.end(JSON.stringify({ description: descriptions[imageName] }));
+    return;
+  }
 
   try {
     let groqPayload;
@@ -204,17 +231,16 @@ async function generateDescription(request, response) {
     }
 
     const result = await groqResponse.json();
+    const description = result.choices[0].message.content;
+    descriptions[imageName] = description;
+    writeDescriptions(descriptions);
     response.writeHead(200, {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     });
-    response.end(
-      JSON.stringify({
-        description: result.choices[0].message.content,
-      }),
-    );
+    response.end(JSON.stringify({ description: description }));
   } catch (error) {
     if (error.name === "TimeoutError") {
       response.writeHead(504, {
@@ -277,6 +303,48 @@ const server = http.createServer(async (request, response) => {
     ["POST", "OPTIONS"].includes(request.method)
   ) {
     await generateDescription(request, response);
+    return;
+  }
+
+  serveStatic(request, response, url.pathname);
+});
+
+async function getSavedDescription(request, response) {
+  const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  const imageName = url.searchParams.get("imageName");
+  if (!imageName) {
+    response.writeHead(400, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ error: "No image name provided" }));
+    return;
+  }
+  const descriptions = readDescriptions();
+  const description = descriptions[imageName] || "";
+  response.writeHead(200, {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+  });
+  response.end(JSON.stringify({ description: description }));
+}
+
+const server = http.createServer(async (request, response) => {
+  const url = new URL(
+    request.url,
+    `http://${request.headers.host || "localhost"}`,
+  );
+
+  if (
+    url.pathname === "/api/generate-description" &&
+    ["POST", "OPTIONS"].includes(request.method)
+  ) {
+    await generateDescription(request, response);
+    return;
+  }
+
+  if (url.pathname === "/api/get-saved-description" && request.method === "GET") {
+    await getSavedDescription(request, response);
     return;
   }
 

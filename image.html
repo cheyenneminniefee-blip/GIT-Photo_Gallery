@@ -144,12 +144,32 @@
             const loadingElement = document.getElementById('loading');
             const errorElement = document.getElementById('error');
 
+            let savedDescription = '';
+            
+            async function loadSavedDescription() {
+                try {
+                    const response = await fetch('/api/get-saved-description?imageName=' + encodeURIComponent(imageName), {
+                        method: 'GET'
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.description) {
+                            savedDescription = data.description;
+                            aiDescriptionElement.textContent = savedDescription;
+                        }
+                    }
+                } catch (error) {
+                    console.log('No saved description found');
+                }
+            }
+
             if (imageName) {
                 imageElement.src = getImageUrl(imageName);
                 imageElement.alt = imageName;
                 const baseName = imageName.replace(/\.(jpg|jpeg|png)$/i, '');
                 titleElement.textContent = baseName.replace(/_/g, ' ');
                 descriptionElement.textContent = getStaticDescription(imageName);
+                loadSavedDescription();
             }
 
             generateBtn.addEventListener('click', async function() {
@@ -171,7 +191,8 @@
                         },
                         body: JSON.stringify({
                             imageName: imageName,
-                            imageUrl: imageElement.src
+                            imageUrl: imageElement.src,
+                            forceRegenerate: true
                         })
                     });
                     
