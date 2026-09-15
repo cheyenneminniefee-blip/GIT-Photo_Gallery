@@ -84,7 +84,7 @@ async function generateDescription(request, response) {
   if (imageUrl) {
     // Use vision model with image URL
     groqPayload = {
-      model: "qwen/qwen3.6-27b",
+      model: "qwen/qwen3.8-27b",
       messages: [{
         role: "user",
         content: [
