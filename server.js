@@ -32,7 +32,11 @@ function sendText(response, statusCode, body) {
 }
 
 function getImageTitle(imageName) {
-  return imageName.replace(".jpg", "").replace(".jpeg", "").replace(".png", "").replaceAll("_", " ");
+  return imageName
+    .replace(".jpg", "")
+    .replace(".jpeg", "")
+    .replace(".png", "")
+    .replaceAll("_", " ");
 }
 
 async function generateDescription(request, response) {
@@ -74,7 +78,9 @@ async function generateDescription(request, response) {
 
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    sendJson(response, 400, { error: "GROQ_API_KEY not configured in Replit Secrets" });
+    sendJson(response, 400, {
+      error: "GROQ_API_KEY not configured in Replit Secrets",
+    });
     return;
   }
 
@@ -84,14 +90,19 @@ async function generateDescription(request, response) {
   if (imageUrl) {
     // Use vision model with image URL
     groqPayload = {
-      model: "llava-v1.5-7b",
-      messages: [{
-        role: "user",
-        content: [
-          { type: "text", text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.` },
-          { type: "image_url", image_url: { url: imageUrl } }
-        ]
-      }],
+      model: "qwen/qwen3.8-27b",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.`,
+            },
+            { type: "image_url", image_url: { url: imageUrl } },
+          ],
+        },
+      ],
       temperature: 0.7,
       max_tokens: 150,
     };
@@ -99,22 +110,30 @@ async function generateDescription(request, response) {
     // Fallback to text-only model
     groqPayload = {
       model: "llama3-8b-8192",
-      messages: [{ role: "user", content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.` }],
+      messages: [
+        {
+          role: "user",
+          content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`,
+        },
+      ],
       temperature: 0.7,
       max_tokens: 150,
     };
   }
 
   try {
-    const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(groqPayload),
+        signal: AbortSignal.timeout(30_000),
       },
-      body: JSON.stringify(groqPayload),
-      signal: AbortSignal.timeout(30_000),
-    });
+    );
 
     if (!groqResponse.ok) {
       let errorMessage = await groqResponse.text();
@@ -130,7 +149,9 @@ async function generateDescription(request, response) {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       });
-      response.end(JSON.stringify({ error: `API request failed: ${errorMessage}` }));
+      response.end(
+        JSON.stringify({ error: `API request failed: ${errorMessage}` }),
+      );
       return;
     }
 
@@ -141,9 +162,11 @@ async function generateDescription(request, response) {
       "Access-Control-Allow-Methods": "POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     });
-    response.end(JSON.stringify({
-      description: result.choices[0].message.content,
-    }));
+    response.end(
+      JSON.stringify({
+        description: result.choices[0].message.content,
+      }),
+    );
   } catch (error) {
     if (error.name === "TimeoutError") {
       response.writeHead(504, {
@@ -152,7 +175,9 @@ async function generateDescription(request, response) {
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
       });
-      response.end(JSON.stringify({ error: "Request timed out after 30 seconds" }));
+      response.end(
+        JSON.stringify({ error: "Request timed out after 30 seconds" }),
+      );
       return;
     }
     response.writeHead(500, {
@@ -166,8 +191,11 @@ async function generateDescription(request, response) {
 }
 
 function serveStatic(request, response, requestPath) {
-  const requestedFile = requestPath === "/favicon.ico" ? "/favicon.svg" : requestPath;
-  const decodedPath = decodeURIComponent(requestedFile === "/" ? "/index.html" : requestedFile);
+  const requestedFile =
+    requestPath === "/favicon.ico" ? "/favicon.svg" : requestPath;
+  const decodedPath = decodeURIComponent(
+    requestedFile === "/" ? "/index.html" : requestedFile,
+  );
   const filePath = path.resolve(ROOT, `.${decodedPath}`);
 
   if (filePath !== ROOT && !filePath.startsWith(`${ROOT}${path.sep}`)) {
@@ -181,16 +209,24 @@ function serveStatic(request, response, requestPath) {
       return;
     }
 
-    const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+    const contentType =
+      MIME_TYPES[path.extname(filePath).toLowerCase()] ||
+      "application/octet-stream";
     response.writeHead(200, { "Content-Type": contentType });
     fs.createReadStream(filePath).pipe(response);
   });
 }
 
 const server = http.createServer(async (request, response) => {
-  const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  const url = new URL(
+    request.url,
+    `http://${request.headers.host || "localhost"}`,
+  );
 
-  if (url.pathname === "/api/generate-description" && ["POST", "OPTIONS"].includes(request.method)) {
+  if (
+    url.pathname === "/api/generate-description" &&
+    ["POST", "OPTIONS"].includes(request.method)
+  ) {
     await generateDescription(request, response);
     return;
   }
