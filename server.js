@@ -39,6 +39,52 @@ function getImageTitle(imageName) {
     .replaceAll("_", " ");
 }
 
+async function fetchImageAsDataUrl(imageUrl) {
+  if (imageUrl.startsWith("data:image/")) {
+    return imageUrl;
+  }
+
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(imageUrl);
+  } catch {
+    throw new Error("The image URL is invalid.");
+  }
+
+  if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+    throw new Error("The image URL must use HTTP or HTTPS.");
+  }
+
+  const imageResponse = await fetch(parsedUrl, {
+    headers: {
+      Accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      "User-Agent": "Mozilla/5.0 (compatible; PhotoGallery/1.0)",
+    },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!imageResponse.ok) {
+    throw new Error(`The image host returned HTTP ${imageResponse.status}.`);
+  }
+
+  const contentType = imageResponse.headers.get("content-type")?.split(";")[0] || "image/jpeg";
+  if (!contentType.startsWith("image/")) {
+    throw new Error("The image URL did not return an image.");
+  }
+
+  const declaredLength = Number(imageResponse.headers.get("content-length") || 0);
+  if (declaredLength > 20 * 1024 * 1024) {
+    throw new Error("The image is larger than Groq's 20 MB vision limit.");
+  }
+
+  const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+  if (imageBuffer.length > 20 * 1024 * 1024) {
+    throw new Error("The image is larger than Groq's 20 MB vision limit.");
+  }
+
+  return `data:${contentType};base64,${imageBuffer.toString("base64")}`;
+}
+
 async function generateDescription(request, response) {
   if (request.method === "OPTIONS") {
     response.writeHead(200, {
@@ -86,42 +132,44 @@ async function generateDescription(request, response) {
 
   const imageTitle = getImageTitle(imageName);
 
-  let groqPayload;
-  if (imageUrl) {
-    // Use vision model with image URL
-    groqPayload = {
-      model: "qwen/qwen3.8-27b",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.`,
-            },
-            { type: "image_url", image_url: { url: imageUrl } },
-          ],
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 150,
-    };
-  } else {
-    // Fallback to text-only model
-    groqPayload = {
-      model: "llama3-8b-8192",
-      messages: [
-        {
-          role: "user",
-          content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 150,
-    };
-  }
-
   try {
+    let groqPayload;
+    if (imageUrl) {
+      // Download the image server-side so Groq does not need to fetch a
+      // third-party URL that may reject Groq's media retrieval request.
+      const imageDataUrl = await fetchImageAsDataUrl(imageUrl);
+      groqPayload = {
+        model: "qwen/qwen3.8-27b",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.`,
+              },
+              { type: "image_url", image_url: { url: imageDataUrl } },
+            ],
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      };
+    } else {
+      // Fallback to text-only model
+      groqPayload = {
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "user",
+            content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      };
+    }
+
     const groqResponse = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
       {
@@ -180,7 +228,8 @@ async function generateDescription(request, response) {
       );
       return;
     }
-    response.writeHead(500, {
+    const statusCode = error.message.startsWith("The image ") ? 502 : 500;
+    response.writeHead(statusCode, {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, OPTIONS",
