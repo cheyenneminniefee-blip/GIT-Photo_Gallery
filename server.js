@@ -1,4 +1,5 @@
 const http = require("node:http");
+const https = require("node:https");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -65,6 +66,7 @@ async function generateDescription(request, response) {
   }
 
   const imageName = data?.imageName || "";
+  const imageUrl = data?.imageUrl || "";
   if (!imageName) {
     sendJson(response, 400, { error: "No image name provided" });
     return;
@@ -77,7 +79,31 @@ async function generateDescription(request, response) {
   }
 
   const imageTitle = getImageTitle(imageName);
-  const prompt = `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`;
+
+  let groqPayload;
+  if (imageUrl) {
+    // Use vision model with image URL
+    groqPayload = {
+      model: "qwen/qwen3.6-27b",
+      messages: [{
+        role: "user",
+        content: [
+          { type: "text", text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.` },
+          { type: "image_url", image_url: { url: imageUrl } }
+        ]
+      }],
+      temperature: 0.7,
+      max_tokens: 150,
+    };
+  } else {
+    // Fallback to text-only model
+    groqPayload = {
+      model: "openai/gpt-oss-20b",
+      messages: [{ role: "user", content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.` }],
+      temperature: 0.7,
+      max_tokens: 150,
+    };
+  }
 
   try {
     const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -86,12 +112,7 @@ async function generateDescription(request, response) {
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-        max_tokens: 150,
-      }),
+      body: JSON.stringify(groqPayload),
       signal: AbortSignal.timeout(30_000),
     });
 
