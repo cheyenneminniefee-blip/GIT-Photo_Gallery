@@ -84,7 +84,7 @@ async function generateDescription(request, response) {
   if (imageUrl) {
     // Use vision model with image URL
     groqPayload = {
-      model: "qwen/qwen3.8-27b",
+      model: "llava-v1.5-7b",
       messages: [{
         role: "user",
         content: [
@@ -98,7 +98,7 @@ async function generateDescription(request, response) {
   } else {
     // Fallback to text-only model
     groqPayload = {
-      model: "openai/gpt-oss-20b",
+      model: "llama3-8b-8192",
       messages: [{ role: "user", content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.` }],
       temperature: 0.7,
       max_tokens: 150,
@@ -116,28 +116,52 @@ async function generateDescription(request, response) {
       signal: AbortSignal.timeout(30_000),
     });
 
-    if (groqResponse.status !== 200) {
+    if (!groqResponse.ok) {
       let errorMessage = await groqResponse.text();
       try {
         const errorData = JSON.parse(errorMessage);
         errorMessage = errorData?.error?.message || errorMessage;
       } catch {
-        // Keep the raw response text, matching the Python fallback.
+        // Keep the raw response text
       }
-      sendJson(response, 500, { error: `API request failed: ${errorMessage}` });
+      response.writeHead(500, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      });
+      response.end(JSON.stringify({ error: `API request failed: ${errorMessage}` }));
       return;
     }
 
     const result = await groqResponse.json();
-    sendJson(response, 200, {
-      description: result.choices[0].message.content,
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
     });
+    response.end(JSON.stringify({
+      description: result.choices[0].message.content,
+    }));
   } catch (error) {
     if (error.name === "TimeoutError") {
-      sendJson(response, 504, { error: "Request timed out after 30 seconds" });
+      response.writeHead(504, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      });
+      response.end(JSON.stringify({ error: "Request timed out after 30 seconds" }));
       return;
     }
-    sendJson(response, 500, { error: error.message });
+    response.writeHead(500, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    response.end(JSON.stringify({ error: error.message }));
   }
 }
 

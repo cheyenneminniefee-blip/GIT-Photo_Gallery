@@ -52,6 +52,8 @@ The project uses a Node.js server to serve the static files and handle AI reques
 
 - Sign up at https://groq.com
 - Get your API key from https://console.groq.com/keys
-- The application uses the `llama3-8b-8192` model
+- **Primary model**: `llava-v1.5-7b` (vision model for image description with URLs)
+- **Fallback model**: `llama3-8b-8192` (text-only model when no image URL is available)
 - **Important**: The API key must be set in Replit Secrets - there is no other way to configure it
 - The key is used server-side only and is never exposed to the browser
+- Note: The vision model requires valid image URLs. If you encounter "failed to retrieve media: received status code: 403" errors, ensure your image URLs are publicly accessible and not blocked by the hosting service.
