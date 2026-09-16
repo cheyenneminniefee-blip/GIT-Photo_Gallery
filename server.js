@@ -78,6 +78,11 @@ async function fetchImageAsDataUrl(imageUrl) {
   });
 
   if (!imageResponse.ok) {
+    const errorText = await imageResponse.text();
+    const contentType = imageResponse.headers.get("content-type") || "";
+    if (contentType.includes("text/html") || errorText.includes("<html") || errorText.includes("File not found")) {
+      throw new Error(`The URL returned an HTML error page. Please verify the image URL is correct and directly links to an image file.`);
+    }
     throw new Error(`The image host returned HTTP ${imageResponse.status}.`);
   }
 
@@ -305,7 +310,7 @@ async function generateDescription(request, response) {
       );
       return;
     }
-    const statusCode = error.message.startsWith("The image ") ? 502 : 500;
+    const statusCode = error.message.startsWith("The image ") || error.message.startsWith("The URL") ? 502 : 500;
     response.writeHead(statusCode, {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
@@ -469,6 +474,12 @@ async function generateTitleFromImage(request, response) {
     return;
   }
 
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    sendJson(response, 400, { error: "GROQ_API_KEY not configured" });
+    return;
+  }
+
   try {
     const title = await generateTitle(imageUrl);
     response.writeHead(200, {
@@ -489,7 +500,7 @@ async function generateTitleFromImage(request, response) {
       response.end(JSON.stringify({ error: "Request timed out after 30 seconds" }));
       return;
     }
-    const statusCode = error.message.startsWith("The image ") ? 502 : 500;
+    const statusCode = error.message.startsWith("The image ") || error.message.startsWith("The URL") ? 502 : 500;
     response.writeHead(statusCode, {
       "Content-Type": "application/json; charset=utf-8",
       "Access-Control-Allow-Origin": "*",
