@@ -136,6 +136,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             const urlParams = new URLSearchParams(window.location.search);
             const imageName = urlParams.get('name');
+            const imageUrl = urlParams.get('url');
+            const customTitle = urlParams.get('title');
+            const isCustom = urlParams.get('custom') === 'true';
             const imageElement = document.getElementById('display-image');
             const titleElement = document.getElementById('image-title');
             const descriptionElement = document.getElementById('image-description');
@@ -144,13 +147,65 @@
             const loadingElement = document.getElementById('loading');
             const errorElement = document.getElementById('error');
 
+            function getImageTitle(filename) {
+                return filename.replace(/\.(jpg|jpeg|png)$/i, '').replace(/_/g, ' ');
+            }
+
+            function getImageUrl(filename) {
+                const imageMap = {
+                    'hollow_knight_silksong.jpg': 'https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg',
+                    'hollow_knight_character.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5k6jZ7LfrKBMa8Wobt_KSN97QQth7eCnk1g3c9moEaDM4kM06_4CaKGh2&s=10',
+                    'hollow_knight_gameplay.jpg': 'https://assets1.ignimgs.com/2018/06/21/hollowknight-1280-1529623462572_160w.jpg?width=1280&format=jpg&auto=webp&quality=80',
+                    'dead_cells_cover.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyvbQgfn_JAg2lNjIOZC5AXtLekQw-t0riyM6_G11Uug&s',
+                    'dead_cells_green.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUBUwHEmiqTZyNywOFr6pdmHhE-pg2lnSVNgjjHzEFZg&s=10',
+                    'dead_cells_boss.jpg': 'https://i.guim.co.uk/img/media/b5285e0659348c1c79ede25248cb945fba8112b5/52_153_1545_927/master/1545.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=a89a428b0618a580071544abf0edb239',
+                    'noita_screenshot.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcJIYXvTW-lXGADxJTWWjzDIlXNWrZnqjVMh7hWN1nJg&s',
+                    'noita_magic.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzNt_6yQ4tbY7Em1vJI6mIm3F7oVMO4X7nbkGKxG0QF4c4bSIHSpSZ0M&s=10',
+                    'noita_world.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlM_u3yMflhnfq-vPmbqNSCV2mGnMlqEvkKWHZAo6Kci0zTwMpJkJPDMgy&s=10'
+                };
+                return imageMap[filename] || '';
+            }
+
+            function getStaticDescription(filename) {
+                if (!filename) return '';
+                const baseName = filename.replace(/\.(jpg|jpeg|png)$/i, '');
+                const descriptions = {
+                    'hollow_knight_silksong': 'The upcoming sequel featuring Hornet as the protagonist.',
+                    'hollow_knight_character': 'The silent protagonist exploring Hallownest.',
+                    'hollow_knight_gameplay': 'Battling through the depths of Hallownest.',
+                    'dead_cells_cover': 'A roguelike Metroidvania with fast-paced combat and permadeath.',
+                    'dead_cells_green': 'Exploring the toxic sewers biome.',
+                    'dead_cells_boss': 'Facing off against a powerful boss enemy.',
+                    'noita_screenshot': 'A physics-based roguelike where every pixel is simulated.',
+                    'noita_magic': 'Casting powerful spells in the pixel world.',
+                    'noita_world': 'Exploring the procedurally generated world.'
+                };
+                return descriptions[baseName] || '';
+            }
+
+            if (imageName) {
+                if (isCustom && imageUrl) {
+                    imageElement.src = imageUrl;
+                    imageElement.alt = customTitle || imageName;
+                    titleElement.textContent = customTitle || getImageTitle(imageName);
+                    descriptionElement.textContent = 'Custom image';
+                } else {
+                    imageElement.src = getImageUrl(imageName);
+                    imageElement.alt = imageName;
+                    const baseName = imageName.replace(/\.(jpg|jpeg|png)$/i, '');
+                    titleElement.textContent = baseName.replace(/_/g, ' ');
+                    descriptionElement.textContent = getStaticDescription(imageName);
+                }
+            }
+
             async function loadSavedDescription() {
                 if (!imageName) {
                     aiDescriptionElement.textContent = '';
                     return;
                 }
                 try {
-                    const response = await fetch('/api/get-description?imageName=' + encodeURIComponent(imageName) + '&imageUrl=' + encodeURIComponent(imageElement.src));
+                    const urlToUse = isCustom && imageUrl ? imageUrl : getImageUrl(imageName);
+                    const response = await fetch('/api/get-description?imageName=' + encodeURIComponent(imageName) + '&imageUrl=' + encodeURIComponent(urlToUse));
                     if (response.ok) {
                         const data = await response.json();
                         if (data.description) {
@@ -162,16 +217,7 @@
                 }
             }
 
-            if (imageName) {
-                imageElement.src = getImageUrl(imageName);
-                imageElement.alt = imageName;
-                const baseName = imageName.replace(/\.(jpg|jpeg|png)$/i, '');
-                titleElement.textContent = baseName.replace(/_/g, ' ');
-                descriptionElement.textContent = getStaticDescription(imageName);
-                loadSavedDescription();
-            } else {
-                loadSavedDescription();
-            }
+            loadSavedDescription();
 
             generateBtn.addEventListener('click', async function() {
                 if (!imageName) {
@@ -180,11 +226,11 @@
                 }
 
                 loadingElement.style.display = 'block';
-                aiDescriptionElement.textContent = '';
                 errorElement.style.display = 'none';
                 generateBtn.disabled = true;
 
                 try {
+                    const urlToUse = isCustom && imageUrl ? imageUrl : imageElement.src;
                     const response = await fetch('/api/generate-description', {
                         method: 'POST',
                         headers: {
@@ -192,7 +238,7 @@
                         },
                         body: JSON.stringify({
                             imageName: imageName,
-                            imageUrl: imageElement.src,
+                            imageUrl: urlToUse,
                             forceRegenerate: true
                         })
                     });
@@ -226,38 +272,6 @@
             function showError(message) {
                 errorElement.textContent = message;
                 errorElement.style.display = 'block';
-            }
-
-            function getImageUrl(filename) {
-                const imageMap = {
-                    'hollow_knight_silksong.jpg': 'https://upload.wikimedia.org/wikipedia/en/d/de/Hollow_Knight_2026_cover_art.jpg',
-                    'hollow_knight_character.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5k6jZ7LfrKBMa8Wobt_KSN97QQth7eCnk1g3c9moEaDM4kM06_4CaKGh2&s=10',
-                    'hollow_knight_gameplay.jpg': 'https://assets1.ignimgs.com/2018/06/21/hollowknight-1280-1529623462572_160w.jpg?width=1280&format=jpg&auto=webp&quality=80',
-                    'dead_cells_cover.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTyvbQgfn_JAg2lNjIOZC5AXtLekQw-t0riyM6_G11Uug&s',
-                    'dead_cells_green.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSUBUwHEmiqTZyNywOFr6pdmHhE-pg2lnSVNgjjHzEFZg&s=10',
-                    'dead_cells_boss.jpg': 'https://i.guim.co.uk/img/media/b5285e0659348c1c79ede25248cb945fba8112b5/52_153_1545_927/master/1545.jpg?width=1200&height=900&quality=85&auto=format&fit=crop&s=a89a428b0618a580071544abf0edb239',
-                    'noita_screenshot.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcJIYXvTW-lXGADxJTWWjzDIlXNWrZnqjVMh7hWN1nJg&s',
-                    'noita_magic.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQDzNt_6yQ4tbY7Em1vJI6mIm3F7oVMO4X7nbkGKxG0QF4c4bSIHSpSZ0M&s=10',
-                    'noita_world.jpg': 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQlM_u3yMflhnfq-vPmbqNSCV2mGnMlqEvkKWHZAo6Kci0zTwMpJkJPDMgy&s=10'
-                };
-                return imageMap[filename] || '';
-            }
-
-            function getStaticDescription(filename) {
-                if (!filename) return '';
-                const baseName = filename.replace(/\.(jpg|jpeg|png)$/i, '');
-                const descriptions = {
-                    'hollow_knight_silksong': 'The upcoming sequel featuring Hornet as the protagonist.',
-                    'hollow_knight_character': 'The silent protagonist exploring Hallownest.',
-                    'hollow_knight_gameplay': 'Battling through the depths of Hallownest.',
-                    'dead_cells_cover': 'A roguelike Metroidvania with fast-paced combat and permadeath.',
-                    'dead_cells_green': 'Exploring the toxic sewers biome.',
-                    'dead_cells_boss': 'Facing off against a powerful boss enemy.',
-                    'noita_screenshot': 'A physics-based roguelike where every pixel is simulated.',
-                    'noita_magic': 'Casting powerful spells in the pixel world.',
-                    'noita_world': 'Exploring the procedurally generated world.'
-                };
-                return descriptions[baseName] || '';
             }
         });
     </script>
