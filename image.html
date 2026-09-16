@@ -144,18 +144,17 @@
             const loadingElement = document.getElementById('loading');
             const errorElement = document.getElementById('error');
 
-            let savedDescription = '';
-            
             async function loadSavedDescription() {
+                if (!imageName) {
+                    aiDescriptionElement.textContent = '';
+                    return;
+                }
                 try {
-                    const response = await fetch('/api/get-saved-description?imageName=' + encodeURIComponent(imageName), {
-                        method: 'GET'
-                    });
+                    const response = await fetch('/api/get-description?imageName=' + encodeURIComponent(imageName) + '&imageUrl=' + encodeURIComponent(imageElement.src));
                     if (response.ok) {
                         const data = await response.json();
                         if (data.description) {
-                            savedDescription = data.description;
-                            aiDescriptionElement.textContent = savedDescription;
+                            aiDescriptionElement.textContent = data.description;
                         }
                     }
                 } catch (error) {
@@ -169,6 +168,8 @@
                 const baseName = imageName.replace(/\.(jpg|jpeg|png)$/i, '');
                 titleElement.textContent = baseName.replace(/_/g, ' ');
                 descriptionElement.textContent = getStaticDescription(imageName);
+                loadSavedDescription();
+            } else {
                 loadSavedDescription();
             }
 

@@ -131,21 +131,11 @@ async function generateDescription(request, response) {
 
   const imageName = data?.imageName || "";
   const imageUrl = data?.imageUrl || "";
+  const forceRegenerate = data?.forceRegenerate || false;
   if (!imageName) {
     sendJson(response, 400, { error: "No image name provided" });
     return;
   }
-
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    sendJson(response, 400, {
-      error: "GROQ_API_KEY not configured in Replit Secrets",
-    });
-    return;
-  }
-
-  const imageTitle = getImageTitle(imageName);
-  const forceRegenerate = data?.forceRegenerate || false;
 
   const descriptions = readDescriptions();
   if (!forceRegenerate && descriptions[imageName]) {
@@ -159,11 +149,19 @@ async function generateDescription(request, response) {
     return;
   }
 
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    sendJson(response, 400, {
+      error: "GROQ_API_KEY not configured in Replit Secrets",
+    });
+    return;
+  }
+
+  const imageTitle = getImageTitle(imageName);
+
   try {
     let groqPayload;
     if (imageUrl) {
-      // Download the image server-side so Groq does not need to fetch a
-      // third-party URL that may reject Groq's media retrieval request.
       const imageDataUrl = await fetchImageAsDataUrl(imageUrl);
       groqPayload = {
         model: "qwen/qwen3.8-27b",
@@ -183,7 +181,6 @@ async function generateDescription(request, response) {
         max_tokens: 150,
       };
     } else {
-      // Fallback to text-only model
       groqPayload = {
         model: "llama3-8b-8192",
         messages: [
@@ -265,6 +262,123 @@ async function generateDescription(request, response) {
   }
 }
 
+async function getDescription(request, response) {
+  const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
+  const imageName = url.searchParams.get("imageName");
+  const imageUrl = url.searchParams.get("imageUrl");
+  if (!imageName) {
+    response.writeHead(400, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ error: "No image name provided" }));
+    return;
+  }
+
+  const descriptions = readDescriptions();
+  if (descriptions[imageName]) {
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ description: descriptions[imageName] }));
+    return;
+  }
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    response.writeHead(400, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ error: "GROQ_API_KEY not configured" }));
+    return;
+  }
+
+  const imageTitle = getImageTitle(imageName);
+  try {
+    let groqPayload;
+    if (imageUrl) {
+      const imageDataUrl = await fetchImageAsDataUrl(imageUrl);
+      groqPayload = {
+        model: "qwen/qwen3.8-27b",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: `Describe this image in a creative and detailed way. The image title is "${imageTitle}". Focus on what you can see in the image. Provide a 2-3 sentence description.`,
+              },
+              { type: "image_url", image_url: { url: imageDataUrl } },
+            ],
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      };
+    } else {
+      groqPayload = {
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "user",
+            content: `Describe the image titled "${imageTitle}" in a creative and detailed way. Focus on what the image might contain based on its title. Provide a 2-3 sentence description.`,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 150,
+      };
+    }
+
+    const groqResponse = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(groqPayload),
+        signal: AbortSignal.timeout(30_000),
+      },
+    );
+
+    if (!groqResponse.ok) {
+      let errorMessage = await groqResponse.text();
+      try {
+        const errorData = JSON.parse(errorMessage);
+        errorMessage = errorData?.error?.message || errorMessage;
+      } catch {
+        // Keep the raw response text
+      }
+      response.writeHead(500, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+      });
+      response.end(JSON.stringify({ error: `API request failed: ${errorMessage}` }));
+      return;
+    }
+
+    const result = await groqResponse.json();
+    const description = result.choices[0].message.content;
+    descriptions[imageName] = description;
+    writeDescriptions(descriptions);
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ description: description }));
+  } catch (error) {
+    const statusCode = error.message.startsWith("The image ") ? 502 : 500;
+    response.writeHead(statusCode, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+    });
+    response.end(JSON.stringify({ error: error.message }));
+  }
+}
+
 function serveStatic(request, response, requestPath) {
   const requestedFile =
     requestPath === "/favicon.ico" ? "/favicon.svg" : requestPath;
@@ -306,45 +420,8 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
-  serveStatic(request, response, url.pathname);
-});
-
-async function getSavedDescription(request, response) {
-  const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
-  const imageName = url.searchParams.get("imageName");
-  if (!imageName) {
-    response.writeHead(400, {
-      "Content-Type": "application/json; charset=utf-8",
-      "Access-Control-Allow-Origin": "*",
-    });
-    response.end(JSON.stringify({ error: "No image name provided" }));
-    return;
-  }
-  const descriptions = readDescriptions();
-  const description = descriptions[imageName] || "";
-  response.writeHead(200, {
-    "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
-  });
-  response.end(JSON.stringify({ description: description }));
-}
-
-const server = http.createServer(async (request, response) => {
-  const url = new URL(
-    request.url,
-    `http://${request.headers.host || "localhost"}`,
-  );
-
-  if (
-    url.pathname === "/api/generate-description" &&
-    ["POST", "OPTIONS"].includes(request.method)
-  ) {
-    await generateDescription(request, response);
-    return;
-  }
-
-  if (url.pathname === "/api/get-saved-description" && request.method === "GET") {
-    await getSavedDescription(request, response);
+  if (url.pathname === "/api/get-description" && request.method === "GET") {
+    await getDescription(request, response);
     return;
   }
 
