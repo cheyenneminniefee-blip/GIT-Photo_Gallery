@@ -85,6 +85,8 @@ document.addEventListener('DOMContentLoaded', function() {
         imageUrlInput.value = '';
         imageTitleInput.value = '';
         uploadError.textContent = '';
+        // Select manual title by default
+        document.querySelector('input[name="title-source"][value="manual"]').checked = true;
         imageUrlInput.focus();
     }
 
@@ -103,7 +105,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add image from modal
     async function addImageFromModal() {
         const imageUrl = imageUrlInput.value.trim();
-        const title = imageTitleInput.value.trim();
+        const titleSource = document.querySelector('input[name="title-source"]:checked').value;
+        const manualTitle = imageTitleInput.value.trim();
         
         if (!imageUrl) {
             uploadError.textContent = 'Please enter an image URL';
@@ -118,13 +121,43 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // If auto title is selected but no manual title, we need to generate one
+        let title = manualTitle;
+        if (titleSource === 'auto' && !manualTitle) {
+            // We'll generate the title after validating the image
+        } else if (titleSource === 'manual' && !manualTitle) {
+            uploadError.textContent = 'Please enter a title';
+            return;
+        }
+        
         addBtn.disabled = true;
         addBtn.textContent = 'Adding...';
         
         try {
             const id = generateId();
             
-            // First, generate a description using the existing API
+            // If auto title is selected, generate it first
+            if (titleSource === 'auto' && !manualTitle) {
+                const titleResponse = await fetch('/api/generate-title', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        imageUrl: imageUrl
+                    })
+                });
+                
+                if (!titleResponse.ok) {
+                    const errorData = await titleResponse.json();
+                    throw new Error(errorData.error || 'Failed to generate title');
+                }
+                
+                const titleData = await titleResponse.json();
+                title = titleData.title || 'Untitled';
+            }
+            
+            // Generate description
             const response = await fetch('/api/generate-description', {
                 method: 'POST',
                 headers: {

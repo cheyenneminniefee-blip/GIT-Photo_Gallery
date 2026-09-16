@@ -99,6 +99,60 @@ async function fetchImageAsDataUrl(imageUrl) {
   return `data:${contentType};base64,${imageBuffer.toString("base64")}`;
 }
 
+async function generateTitle(imageUrl) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    throw new Error("GROQ_API_KEY not configured");
+  }
+
+  const imageDataUrl = await fetchImageAsDataUrl(imageUrl);
+
+  const groqPayload = {
+    model: "qwen/qwen3.8-27b",
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `Analyze this image and provide a concise, accurate title that describes what is shown. Focus only on what you can see in the image. Return only the title, maximum 10 words.`,
+          },
+          { type: "image_url", image_url: { url: imageDataUrl } },
+        ],
+      },
+    ],
+    temperature: 0.3,
+    max_tokens: 50,
+  };
+
+  const groqResponse = await fetch(
+    "https://api.groq.com/openai/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(groqPayload),
+      signal: AbortSignal.timeout(30_000),
+    },
+  );
+
+  if (!groqResponse.ok) {
+    let errorMessage = await groqResponse.text();
+    try {
+      const errorData = JSON.parse(errorMessage);
+      errorMessage = errorData?.error?.message || errorMessage;
+    } catch {
+      // Keep the raw response text
+    }
+    throw new Error(`API request failed: ${errorMessage}`);
+  }
+
+  const result = await groqResponse.json();
+  return result.choices[0].message.content.trim();
+}
+
 async function generateDescription(request, response) {
   if (request.method === "OPTIONS") {
     response.writeHead(200, {
@@ -379,6 +433,73 @@ async function getDescription(request, response) {
   }
 }
 
+async function generateTitleFromImage(request, response) {
+  if (request.method === "OPTIONS") {
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Length": 2,
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    response.end("{}");
+    return;
+  }
+
+  let body = "";
+  for await (const chunk of request) {
+    body += chunk;
+    if (body.length > 1_000_000) {
+      sendJson(response, 413, { error: "Request body too large" });
+      return;
+    }
+  }
+
+  let data;
+  try {
+    data = JSON.parse(body);
+  } catch {
+    sendJson(response, 400, { error: "Invalid JSON" });
+    return;
+  }
+
+  const imageUrl = data?.imageUrl || "";
+  if (!imageUrl) {
+    sendJson(response, 400, { error: "No image URL provided" });
+    return;
+  }
+
+  try {
+    const title = await generateTitle(imageUrl);
+    response.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    response.end(JSON.stringify({ title: title }));
+  } catch (error) {
+    if (error.name === "TimeoutError") {
+      response.writeHead(504, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      });
+      response.end(JSON.stringify({ error: "Request timed out after 30 seconds" }));
+      return;
+    }
+    const statusCode = error.message.startsWith("The image ") ? 502 : 500;
+    response.writeHead(statusCode, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+    });
+    response.end(JSON.stringify({ error: error.message }));
+  }
+}
+
 function serveStatic(request, response, requestPath) {
   const requestedFile =
     requestPath === "/favicon.ico" ? "/favicon.svg" : requestPath;
@@ -422,6 +543,14 @@ const server = http.createServer(async (request, response) => {
 
   if (url.pathname === "/api/get-description" && request.method === "GET") {
     await getDescription(request, response);
+    return;
+  }
+
+  if (
+    url.pathname === "/api/generate-title" &&
+    ["POST", "OPTIONS"].includes(request.method)
+  ) {
+    await generateTitleFromImage(request, response);
     return;
   }
 
