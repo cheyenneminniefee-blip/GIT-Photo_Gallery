@@ -45,9 +45,19 @@ document.addEventListener('DOMContentLoaded', function() {
         descDiv.className = 'description';
         descDiv.textContent = 'Custom image';
         
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'delete-btn';
+        deleteBtn.innerHTML = '&times;';
+        deleteBtn.title = 'Delete image';
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deleteCustomImage(id, card);
+        });
+        
         card.appendChild(img);
         card.appendChild(titleDiv);
         card.appendChild(descDiv);
+        card.appendChild(deleteBtn);
         
         // Insert before the add card
         const addCardElement = document.getElementById('add-card');
@@ -100,6 +110,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const customImages = JSON.parse(localStorage.getItem('customImages') || '[]');
         customImages.push({ url: imageUrl, title: title, id: id });
         localStorage.setItem('customImages', JSON.stringify(customImages));
+    }
+
+    // Delete custom image from localStorage and DOM
+    function deleteCustomImage(id, cardElement) {
+        const customImages = JSON.parse(localStorage.getItem('customImages') || '[]');
+        const updatedImages = customImages.filter(img => img.id !== id);
+        localStorage.setItem('customImages', JSON.stringify(updatedImages));
+        
+        if (cardElement && cardElement.parentNode) {
+            cardElement.parentNode.removeChild(cardElement);
+        }
     }
 
     // Add image from modal
@@ -207,6 +228,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check if it's the add card
         if (card.classList.contains('add-card')) {
             openUploadModal();
+            return;
+        }
+        
+        // Check if delete button was clicked (handled separately)
+        if (e.target.classList.contains('delete-btn') || e.target.parentElement.classList.contains('delete-btn')) {
             return;
         }
         
