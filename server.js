@@ -8,7 +8,7 @@ const ROOT = path.resolve(__dirname);
 const DESCRIPTIONS_FILE = path.resolve(ROOT, "descriptions.json");
 const ANIMATIONS_FILE = path.resolve(ROOT, "animations.json");
 const RUNWAY_API_KEY = process.env.RUNWAY_API_KEY;
-const RUNWAY_BASE_URL = "https://api.runwayml.com/v1";
+const RUNWAY_BASE_URL = "https://api.dev.runwayml.com/v1";
 
 const MIME_TYPES = {
   ".css": "text/css; charset=utf-8",
