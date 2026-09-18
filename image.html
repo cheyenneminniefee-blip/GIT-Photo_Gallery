@@ -129,6 +129,28 @@
         </div>
         <div id="ai-description" class="ai-description"></div>
     </div>
+
+    <div class="ai-section">
+        <div class="section-title">Animate with Runway ML</div>
+        <div class="input-section">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="animation-prompt" placeholder="Describe what you want to happen..."
+                       style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" />
+                <button id="animate-btn" class="generate-btn">Animate</button>
+            </div>
+            <div id="animation-loading" class="loading" style="display: none;">Generating animation...</div>
+            <div id="animation-error" class="error" style="display: none;"></div>
+            <div class="api-info">Uses RUNWAY_API_KEY from Replit Secrets via server proxy</div>
+        </div>
+        <div id="animation-results" style="margin-top: 15px; display: none;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <button id="show-original" class="generate-btn" style="background-color: #6c757d;">Original</button>
+                <button id="show-animated" class="generate-btn">Animated</button>
+            </div>
+            <video id="animation-video" controls style="max-width: 100%; border-radius: 8px; display: none;"></video>
+            <img id="display-image-original" style="max-width: 100%; border-radius: 8px; display: none;"></img>
+        </div>
+    </div>
     
     <a href="index.html" class="back-link">Back to Gallery</a>
     
@@ -272,6 +294,150 @@
             function showError(message) {
                 errorElement.textContent = message;
                 errorElement.style.display = 'block';
+            }
+
+            // Animation functionality
+            const animateBtn = document.getElementById('animate-btn');
+            const animationPrompt = document.getElementById('animation-prompt');
+            const animationLoading = document.getElementById('animation-loading');
+            const animationError = document.getElementById('animation-error');
+            const animationResults = document.getElementById('animation-results');
+            const animationVideo = document.getElementById('animation-video');
+            const displayImageOriginal = document.getElementById('display-image-original');
+            const showOriginalBtn = document.getElementById('show-original');
+            const showAnimatedBtn = document.getElementById('show-animated');
+
+            let currentView = 'original';
+            let currentAnimationUrl = '';
+
+            animateBtn.addEventListener('click', async function() {
+                const prompt = animationPrompt.value.trim();
+                if (!prompt) {
+                    animationError.textContent = 'Please enter a prompt describing what you want to happen';
+                    animationError.style.display = 'block';
+                    return;
+                }
+
+                if (!imageName) {
+                    animationError.textContent = 'No image selected';
+                    animationError.style.display = 'block';
+                    return;
+                }
+
+                animationLoading.style.display = 'block';
+                animationError.style.display = 'none';
+                animateBtn.disabled = true;
+
+                try {
+                    const urlToUse = isCustom && imageUrl ? imageUrl : imageElement.src;
+                    
+                    const startResponse = await fetch('/api/start-animation', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            imageName: imageName,
+                            imageUrl: urlToUse,
+                            prompt: prompt
+                        })
+                    });
+
+                    if (!startResponse.ok) {
+                        const errorData = await startResponse.json();
+                        throw new Error(errorData.error || 'Failed to start animation');
+                    }
+
+                    const startData = await startResponse.json();
+
+                    if (startData.status === 'processing') {
+                        const checkResponse = await fetch(`/api/check-animation?imageName=${encodeURIComponent(imageName)}&prompt=${encodeURIComponent(prompt)}`);
+                        
+                        if (!checkResponse.ok) {
+                            const errorData = await checkResponse.json();
+                            throw new Error(errorData.error || 'Failed to check animation status');
+                        }
+
+                        const checkData = await checkResponse.json();
+
+                        if (checkData.status === 'completed') {
+                            currentAnimationUrl = checkData.videoUrl;
+                            animationVideo.src = currentAnimationUrl;
+                            animationResults.style.display = 'block';
+                            animationLoading.style.display = 'none';
+                            animateBtn.disabled = false;
+                            showAnimated();
+                        } else if (checkData.status === 'processing') {
+                            animationLoading.textContent = 'Animation is being processed. Please wait and refresh the page.';
+                            setTimeout(() => {
+                                animationLoading.style.display = 'none';
+                                animateBtn.disabled = false;
+                            }, 3000);
+                        } else {
+                            throw new Error(checkData.error || 'Animation processing failed');
+                        }
+                    } else if (startData.status === 'completed') {
+                        currentAnimationUrl = startData.videoUrl;
+                        animationVideo.src = currentAnimationUrl;
+                        animationResults.style.display = 'block';
+                        animationLoading.style.display = 'none';
+                        animateBtn.disabled = false;
+                        showAnimated();
+                    }
+
+                } catch (error) {
+                    animationLoading.style.display = 'none';
+                    animationError.textContent = error.message;
+                    animationError.style.display = 'block';
+                    animateBtn.disabled = false;
+                }
+            });
+
+            showOriginalBtn.addEventListener('click', showOriginal);
+            showAnimatedBtn.addEventListener('click', showAnimated);
+
+            function showOriginal() {
+                currentView = 'original';
+                displayImageOriginal.src = imageElement.src;
+                displayImageOriginal.style.display = 'block';
+                animationVideo.style.display = 'none';
+                showOriginalBtn.style.backgroundColor = '#6c757d';
+                showAnimatedBtn.style.backgroundColor = '#28a745';
+            }
+
+            function showAnimated() {
+                currentView = 'animated';
+                displayImageOriginal.style.display = 'none';
+                animationVideo.style.display = 'block';
+                showOriginalBtn.style.backgroundColor = '#28a745';
+                showAnimatedBtn.style.backgroundColor = '#6c757d';
+            }
+
+            async function loadSavedAnimation() {
+                if (!imageName) return;
+
+                try {
+                    const response = await fetch(`/api/get-animation?imageName=${encodeURIComponent(imageName)}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.animations && Object.keys(data.animations).length > 0) {
+                            const firstPrompt = Object.keys(data.animations)[0];
+                            currentAnimationUrl = data.animations[firstPrompt];
+                            animationPrompt.value = firstPrompt;
+                            animationVideo.src = currentAnimationUrl;
+                            animationResults.style.display = 'block';
+                        }
+                    }
+                } catch (error) {
+                    console.log('No saved animations found');
+                }
+            }
+
+            loadSavedAnimation();
+
+            function showAnimationError(message) {
+                animationError.textContent = message;
+                animationError.style.display = 'block';
             }
         });
     </script>
